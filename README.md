@@ -2,8 +2,8 @@
 A hideous and wholly terrifying Bash script which interfaces with Banshee to provide various services
 
 Current features:
-* Now-playing information, similar in format to that provided by the Notification Area Icon community extension
-* Absolute and relative ranking changes to current track
+* On-demand popup of now-playing information, similar in format to that provided by the Notification Area Icon community extension
+* Absolute *and relative* ranking changes to current track
 
 ## Requirements
 The script requires the following packages and libraries (most of which come stock):
@@ -16,7 +16,7 @@ The script requires the following packages and libraries (most of which come sto
 ## Installation
 Clone the repository with
 
-    $ git clone https://github.com/rhotias/banshee-wrapper.git
+    $ git clone https://github.com/Rhotias/banshee-wrapper.git
 
 Copy the *banshee-wrapper* file to your directory of choice. *~/.local/bin/* is a good one, if that's on your $PATH. Make the script executable with
 
