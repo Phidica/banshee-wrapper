@@ -62,14 +62,16 @@ getArt()
     uri="${uri#$crap}"
     uri="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $uri)" # Important: no quotes around the $uri arg to python
 
-  oldFilename="$(ls "$tmpdir")"
+  if [[ -e "$tmpdir" ]]; then
+    oldFilename="$(ls "$tmpdir")"
+  else
+    mkdir "$tmpdir"
+    oldFilename=""
+  fi
+
   newFilename="$(basename "$uri")"
     newFilename="${newFilename%.*}" # Remove shortest match of ".*"
     newFilename="$newFilename.png"
-
-  if [[ ! -e "$tmpdir" ]]; then
-    mkdir "$tmpdir"
-  fi
 
   # Check against existing art, to see if song has not changed
   if [[ "$oldFilename" == "$newFilename" ]]; then
