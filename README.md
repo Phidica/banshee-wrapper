@@ -6,11 +6,12 @@ Current features:
 * Absolute and relative ranking changes to current track
 
 ## Requirements
-The script requires the following packages and libraries:
+The script requires the following packages and libraries (most of which come stock):
 * python
   * gib
   * sys
 * ffmpeg
+* notify-send
 
 ## Installation
 Clone the repository with
