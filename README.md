@@ -14,8 +14,11 @@ The script requires the following packages and libraries:
 
 ## Installation
 Clone the repository with
+
     $ git clone https://github.com/rhotias/banshee-wrapper.git
+
 Copy the *banshee-wrapper* file to your directory of choice. *~.local/bin/* is a good one, if that's on your $PATH. Make the script executable with
+
     $ chmod +x banshee-wrapper
 
 ## Execution
