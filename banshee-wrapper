@@ -1,0 +1,152 @@
+#!/bin/bash
+
+# Dependencies:
+#   ImageMagick (for image resizing)
+#   python - gio, sys
+#   ffmpeg
+
+tmpdir="/tmp/banshee-wrapper" # Should never contain more than one file
+
+getRating()
+{
+  rating="$(banshee --query-rating)"; crap="rating: "
+  rating="${rating#$crap}"
+
+  if [[ $rating == "" ]]; then
+    rating="0"
+  fi
+
+  printf $rating
+}
+
+getRatingStars()
+{
+  rating="$(getRating)"
+
+  starsStr=""
+  i=0
+  while [[ $i < $rating ]]; do
+    starsStr+="★"
+    let i+=1
+  done
+
+  while [[ $i < 5 ]]; do
+    starsStr+="☆"
+    let i+=1
+  done
+  printf "$starsStr"
+}
+
+# Accepts a string of the form "x","+x", or "-x" and either sets this to the new rating or adds this to the existing rating
+setRating() # usrVal
+{
+  usrVal="$1"
+
+  oldRating="$(getRating)"
+
+  if [[ ${usrVal:0:1} == "+" || ${usrVal:0:1} == "-" ]]; then
+    let newRating=oldRating+usrVal
+  else
+    newRating=usrVal
+  fi
+
+  banshee --set-rating=$newRating
+}
+
+getArt()
+{
+  # uri="$(banshee --query-uri | sed "s/%20/\\ /g")"; crap="uri: file://"
+    # uri="${uri#$crap}"
+
+  uri="$(banshee --query-uri)";crap="uri: "
+    uri="${uri#$crap}"
+    uri="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $uri)" # Important: no quotes around the $uri arg to python
+
+  oldFilename="$(ls "$tmpdir")"
+  newFilename="$(basename "$uri")"
+    newFilename="${newFilename%.*}" # Remove shortest match of ".*"
+    newFilename="$newFilename.png"
+
+  if [[ ! -e "$tmpdir" ]]; then
+    mkdir "$tmpdir"
+  fi
+
+  # Check against existing art, to see if song has not changed
+  if [[ "$oldFilename" == "$newFilename" ]]; then
+    printf "$tmpdir/$oldFilename"
+  else
+    # Delete old art
+    rm -f "$tmpdir/$oldFilename"
+
+    # Try get new art
+    ffmpeg -i "$uri" "$tmpdir/$newFilename"
+
+    # Check if extraction successful
+    if [[ -e "$tmpdir/$newFilename" ]]; then
+      # convert "$tmpdir/$newFilename" -resize 64x64 "$tmpdir/$newFilename" # Is this really necessary?
+      printf "$tmpdir/$newFilename"
+    else
+      printf media-player-banshee
+    fi
+  fi
+}
+
+getTrackDisc()
+{
+  # NOTE: Banshee bug (?), query-disc always returns empty string, even when disc number and count fields are set
+
+  trackNumber="$(banshee --query-track-number)"; crap="track-number: "
+    trackNumber="${trackNumber#$crap}"
+  trackCount="$(banshee --query-track-count)"; crap="track-count: "
+    trackCount="${trackCount#$crap}"
+  disc="$(banshee --query-disc)"; crap="disc: "
+    disc="${disc#$crap}"
+
+  retStr=""
+
+  if [[ "$trackNumber" != "" ]]; then
+    retStr+="("
+    retStr+="$trackNumber"
+    if [[ "$trackCount" != "" ]]; then
+      retStr+="/"
+      retStr+="$trackCount"
+    fi
+    retStr+=")"
+    if [[ "$disc" != "" ]]; then
+      retStr+=" "
+    fi
+  fi
+  if [[ "$disc" != "" ]]; then
+    retStr+="[$disc]"
+  fi
+
+  printf "$retStr"
+}
+
+notify()
+{
+  art="$(getArt)"
+  # printf "\n $art \n" # debug
+  rating="$(getRatingStars)"
+  trackDisc="$(getTrackDisc)"
+
+  # Cut the crap. I'm sure this could be done faster but can't get a handle on string ops
+  title="$(banshee --query-title)"; crap="title: "
+    title="${title#$crap}" # How put literal strings in here?
+  artist="$(banshee --query-artist)"; crap="artist: "
+    artist="${artist#$crap}"
+  album="$(banshee --query-album)"; crap="album: "
+    album="${album#$crap}"
+  info="$(printf "by $artist\nfrom $album")"
+
+  notify-send -i "$art" -t 2 -h int:transient:1 "$rating $trackDisc $title" "$info"
+}
+
+# program
+  if [[ "$1" == "-n" ]]; then
+    notify
+  elif [[ "$1" == "-r" ]]; then
+    setRating "$2"
+    notify
+  fi
+# end program
