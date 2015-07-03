@@ -66,8 +66,6 @@ setRating() # usrVal
 
 getArt()
 {
-  # uri="$(trimQuery uri)"
-  # uri="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $uri)" # Important: no quotes around the $uri arg to python
   fullpath="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $(trimQuery uri))" # Important: no quotes around the $uri arg to python
 
   if [[ -e "$tmpdir" ]]; then
