@@ -66,7 +66,7 @@ setRating() # usrVal
 
 getArt()
 {
-  fullpath="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $(trimQuery uri))" # Important: no quotes around the $uri arg to python
+  fullpath="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $(trimQuery uri) )" # Important: no quotes around the trimQuery uri arg to python
 
   if [[ -e "$tmpdir" ]]; then
     oldFilename="$(ls "$tmpdir")"
@@ -75,8 +75,8 @@ getArt()
     oldFilename=""
   fi
 
-  newFilename="$(basename "$fullpath")"
-  newFilename="${newFilename%.*}.png" # Remove shortest match of ".*" and replace with ".png"
+  newFilename="$(basename "$fullpath" | sed "s/,/_/g")" # notify-send bug (?): Doesn't show icon if path contains a comma, so replace with underscore
+  newFilename="${newFilename%.*}.png" # Remove shortest match of ".*" and append ".png"
 
   # Check against existing art, to see if song has not changed
   if [[ "$oldFilename" == "$newFilename" ]]; then
@@ -100,7 +100,8 @@ getArt()
 
 getTrackDisc()
 {
-  # NOTE: Banshee bug (?), query-disc always returns empty string, even when disc number and count fields are set
+  # Banshee bug (?): query-disc always returns empty string, even when disc number and count fields are set
+  # This code written assuming query-disc may return a valid nonempty string
 
   trackNumber="$(trimQuery track-number)"
   trackCount="$(trimQuery track-count)"
