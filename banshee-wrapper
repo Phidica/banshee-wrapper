@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Dependencies:
+# Commented dependencies:
 #   ImageMagick (for image resizing)
-#   python - gio, sys
-#   ffmpeg
 
 tmpdir="/tmp/banshee-wrapper" # Should never contain more than one file
 
@@ -12,11 +10,10 @@ trimQuery() # query
 {
   query="$1"
 
-  # Use the pipe through sed to turn % into %%, since printf interprets % as a different sort of control char and %% as a single escaped %
-  str="$(banshee --query-$query | sed "s/%/%%/g")"
+  str="$(banshee --query-$query)"
   result="${str#$query: }" # How put above line in place of str?
 
-  printf "$result"
+  printf %s "$result"
 }
 
 getRating()
@@ -27,7 +24,7 @@ getRating()
     rating="0"
   fi
 
-  printf $rating
+  printf %s $rating
 }
 
 getRatingStars()
@@ -45,7 +42,7 @@ getRatingStars()
     starsStr+="☆"
     let i+=1
   done
-  printf "$starsStr"
+  printf %s "$starsStr"
 }
 
 # Accepts a string of the form "x","+x", or "-x" and either sets this to the new rating or adds this to the existing rating
@@ -75,12 +72,12 @@ getArt()
     oldFilename=""
   fi
 
-  newFilename="$(basename "$fullpath" | sed "s/,/_/g")" # notify-send bug (?): Doesn't show icon if path contains a comma, so replace with underscore
+  newFilename="$(basename "$fullpath" | sed "s/,/_/g")" # notify-send bug #674642: Doesn't show icon if path contains a comma, so replace with underscore
   newFilename="${newFilename%.*}.png" # Remove shortest match of ".*" and append ".png"
 
   # Check against existing art, to see if song has not changed
   if [[ "$oldFilename" == "$newFilename" ]]; then
-    printf "$tmpdir/$oldFilename"
+    printf %s "$tmpdir/$oldFilename"
   else
     # Delete old art
     rm -f "$tmpdir/$oldFilename"
@@ -91,9 +88,9 @@ getArt()
     # Check if extraction successful
     if [[ -e "$tmpdir/$newFilename" ]]; then
       # convert "$tmpdir/$newFilename" -resize 64x64 "$tmpdir/$newFilename" # Is this really necessary?
-      printf "$tmpdir/$newFilename"
+      printf %s "$tmpdir/$newFilename"
     else
-      printf media-player-banshee # Stock Banshee icon
+      printf %s "media-player-banshee" # Stock Banshee icon
     fi
   fi
 }
@@ -125,7 +122,7 @@ getTrackDisc()
     retStr+="[$disc]"
   fi
 
-  printf "$retStr"
+  printf %s "$retStr"
 }
 
 notify()
@@ -139,7 +136,7 @@ notify()
 
   artist="$(trimQuery artist)"
   album="$(trimQuery album)"
-  info="$(printf "by $artist\nfrom $album")"
+  info="$(printf "%s\n%s" "by $artist" "from $album")"
 
   notify-send -i "$art" -t 2 -h int:transient:1 "$rating $trackDisc $title" "$info"
 }
