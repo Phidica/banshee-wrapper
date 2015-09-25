@@ -16,6 +16,25 @@ trimQuery() # query
   printf %s "$result"
 }
 
+getState()
+{
+  state="$(trimQuery current-state)"
+
+  stateStr="["
+  if [[ $state == "playing" ]]; then
+    stateStr+="▶"
+  elif [[ $state == "paused" ]]; then
+    stateStr+="Ⅱ"
+  elif [[ $state == "idle" ]]; then
+    stateStr+="◼"
+  else
+    stateStr+="?"
+  fi
+  stateStr+="]"
+
+  printf %s "$stateStr"
+}
+
 getRating()
 {
   rating="$(trimQuery rating)"
@@ -127,6 +146,7 @@ getTrackDisc()
 
 notify()
 {
+  state="$(getState)"
   art="$(getArt)"
   # printf "\n $art \n" # debug
   rating="$(getRatingStars)"
@@ -138,7 +158,7 @@ notify()
   album="$(trimQuery album)"
   info="$(printf "%s\n%s" "by $artist" "from $album")"
 
-  notify-send -i "$art" -t 2 -h int:transient:1 "$rating $trackDisc $title" "$info"
+  notify-send -i "$art" -t 2 -h int:transient:1 "$state $rating $trackDisc $title" "$info"
 }
 
 # program
