@@ -1,15 +1,16 @@
 #!/bin/bash
 
 cachedir=~/.cache/media-art # Location of Banshee album art cache
-tmpdir=/tmp/banshee-wrapper # Should never contain more than one file
 
 # Accepts a valid Banshee query type, returns the trimmed result
 trimQuery() # query
 {
   query="$1"
 
-  str="$(banshee --query-$query)"
-  result="${str#$query: }" # How put above line in place of str?
+  # Get complete fields output, keep the first matching field
+  str="$(banshee --query-all | grep -m 1 $query)"
+  # Trim away the key and keep the data
+  result=${str#$query: }
 
   printf "%s" "$result"
 }
@@ -80,64 +81,24 @@ setRating() # usrVal
 
 getArt()
 {
-  # Build the name that Banshee would have used if it had cached the art of the current album
-  albumHash="$(printf "%s\t%s" "$(trimQuery artist)" "$(trimQuery album)" | md5sum | cut -b1-32)"
-  artFilename="album-$albumHash.jpg"
+  artworkID="$(trimQuery artwork-id)"
 
-  # If Banshee has cached this art, get it and use it
-  if [[ -e "$cachedir/$artFilename" ]]; then
-    printf "%s" "$cachedir/$artFilename"
-  # else # Employ fallback solution
-  #   getArtOld
-  fi
-}
-
-# Deprecation candidate, may be removed in future releases
-# This is the only function dependent on tmpdir defined at top
-getArtOld()
-{
-  # Existing art is whatever is in tmpdir
-  if [[ -e "$tmpdir" ]]; then
-    oldArt="$(ls "$tmpdir")"
-  else
-    mkdir "$tmpdir"
-    oldArt=""
-  fi
-
-  # Build the name that art extracted from the source file would have
-  fullpath="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $(trimQuery uri) )" # Important: no quotes around the trimQuery uri arg to python
-  newArt="$(basename "$fullpath" | sed "s/,/_/g")" # notify-send bug #674642: Doesn't show icon if path contains a comma, so replace with underscore
-  newArt="${newArt%.*}.png" # Remove shortest match of ".*" and append ".png"
-
-  # Check against existing art, to see if song has not changed
-  if [[ "$oldArt" == "$newArt" ]]; then
-    printf "%s" "$tmpdir/$oldArt"
-  else # Song has changed
-    # Delete old art
-    if [[ "$oldArt" != "" ]]; then
-      rm -f "$tmpdir/$oldArt"
-    fi
-
-    # Try get new art
-    ffmpeg -i "$fullpath" "$tmpdir/$newArt"
-
-    # Check if extraction successful
-    if [[ -e "$tmpdir/$newArt" ]]; then
-      printf "%s" "$tmpdir/$newArt"
-    else # No art stored in source file
-      printf "%s" "media-player-banshee" # Stock Banshee icon
-    fi
+  if [[ -e "$cachedir/$artworkID.jpg" ]]; then
+    printf "%s" "$cachedir/$artworkID.jpg"
+  else # Employ fallback solution
+    printf "%s" "media-player-banshee" # Stock Banshee icon
   fi
 }
 
 getTrackDisc()
 {
   # Banshee bug (?): query-disc always returns empty string, even when disc number and count fields are set
-  # This code written assuming query-disc may return a valid nonempty string
+  # 2015-11-25 - Solution has been found: Use query-all
 
   trackNumber="$(trimQuery track-number)"
   trackCount="$(trimQuery track-count)"
-  disc="$(trimQuery disc)"
+  discNumber="$(trimQuery disc-number)"
+  discCount="$(trimQuery disc-count)"
 
   retStr=""
 
@@ -150,8 +111,14 @@ getTrackDisc()
     fi
     retStr+=")"
   fi
-  if [[ "$disc" != "" ]]; then
-    retStr+="($disc)"
+  if [[ "$discNumber" != "" ]]; then
+    retStr+=" ("
+    retStr+="$discNumber"
+    if [[ "$discCount" != "" ]]; then
+      retStr+="/"
+      retStr+="$discCount"
+    fi
+    retStr+=")"
   fi
 
   printf "%s" "$retStr"
