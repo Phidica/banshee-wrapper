@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Commented dependencies:
-#   ImageMagick (for image resizing)
-
-tmpdir="/tmp/banshee-wrapper" # Should never contain more than one file
+cachedir=~/.cache/media-art # Location of Banshee album art cache
+tmpdir=/tmp/banshee-wrapper # Should never contain more than one file
 
 # Accepts a valid Banshee query type, returns the trimmed result
 trimQuery() # query
@@ -13,7 +11,7 @@ trimQuery() # query
   str="$(banshee --query-$query)"
   result="${str#$query: }" # How put above line in place of str?
 
-  printf %s "$result"
+  printf "%s" "$result"
 }
 
 getState()
@@ -32,7 +30,7 @@ getState()
   fi
   stateStr+="]"
 
-  printf %s "$stateStr"
+  printf "%s" "$stateStr"
 }
 
 getRating()
@@ -43,7 +41,7 @@ getRating()
     rating="0"
   fi
 
-  printf %s $rating
+  printf "%s" $rating
 }
 
 getRatingStars()
@@ -61,7 +59,7 @@ getRatingStars()
     starsStr+="☆"
     let i+=1
   done
-  printf %s "$starsStr"
+  printf "%s" "$starsStr"
 }
 
 # Accepts a string of the form "x","+x", or "-x" and either sets this to the new rating or adds this to the existing rating
@@ -82,34 +80,52 @@ setRating() # usrVal
 
 getArt()
 {
-  fullpath="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $(trimQuery uri) )" # Important: no quotes around the trimQuery uri arg to python
+  # Build the name that Banshee would have used if it had cached the art of the current album
+  albumHash="$(printf "%s\t%s" "$(trimQuery artist)" "$(trimQuery album)" | md5sum | cut -b1-32)"
+  artFilename="album-$albumHash.jpg"
 
+  # If Banshee has cached this art, get it and use it
+  if [[ -e "$cachedir/$artFilename" ]]; then
+    printf "%s" "$cachedir/$artFilename"
+  # else # Employ fallback solution
+  #   getArtOld
+  fi
+}
+
+# Deprecation candidate, may be removed in future releases
+# This is the only function dependent on tmpdir defined at top
+getArtOld()
+{
+  # Existing art is whatever is in tmpdir
   if [[ -e "$tmpdir" ]]; then
-    oldFilename="$(ls "$tmpdir")"
+    oldArt="$(ls "$tmpdir")"
   else
     mkdir "$tmpdir"
-    oldFilename=""
+    oldArt=""
   fi
 
-  newFilename="$(basename "$fullpath" | sed "s/,/_/g")" # notify-send bug #674642: Doesn't show icon if path contains a comma, so replace with underscore
-  newFilename="${newFilename%.*}.png" # Remove shortest match of ".*" and append ".png"
+  # Build the name that art extracted from the source file would have
+  fullpath="$(python -c 'import gio,sys; print(gio.File(sys.argv[1]).get_path())' $(trimQuery uri) )" # Important: no quotes around the trimQuery uri arg to python
+  newArt="$(basename "$fullpath" | sed "s/,/_/g")" # notify-send bug #674642: Doesn't show icon if path contains a comma, so replace with underscore
+  newArt="${newArt%.*}.png" # Remove shortest match of ".*" and append ".png"
 
   # Check against existing art, to see if song has not changed
-  if [[ "$oldFilename" == "$newFilename" ]]; then
-    printf %s "$tmpdir/$oldFilename"
-  else
+  if [[ "$oldArt" == "$newArt" ]]; then
+    printf "%s" "$tmpdir/$oldArt"
+  else # Song has changed
     # Delete old art
-    rm -f "$tmpdir/$oldFilename"
+    if [[ "$oldArt" != "" ]]; then
+      rm -f "$tmpdir/$oldArt"
+    fi
 
     # Try get new art
-    ffmpeg -i "$fullpath" "$tmpdir/$newFilename"
+    ffmpeg -i "$fullpath" "$tmpdir/$newArt"
 
     # Check if extraction successful
-    if [[ -e "$tmpdir/$newFilename" ]]; then
-      # convert "$tmpdir/$newFilename" -resize 64x64 "$tmpdir/$newFilename" # Is this really necessary?
-      printf %s "$tmpdir/$newFilename"
-    else
-      printf %s "media-player-banshee" # Stock Banshee icon
+    if [[ -e "$tmpdir/$newArt" ]]; then
+      printf "%s" "$tmpdir/$newArt"
+    else # No art stored in source file
+      printf "%s" "media-player-banshee" # Stock Banshee icon
     fi
   fi
 }
@@ -133,22 +149,19 @@ getTrackDisc()
       retStr+="$trackCount"
     fi
     retStr+=")"
-    if [[ "$disc" != "" ]]; then
-      retStr+=" "
-    fi
   fi
   if [[ "$disc" != "" ]]; then
-    retStr+="[$disc]"
+    retStr+="($disc)"
   fi
 
-  printf %s "$retStr"
+  printf "%s" "$retStr"
 }
 
 notify()
 {
-  state="$(getState)"
   art="$(getArt)"
-  # printf "\n $art \n" # debug
+  # printf "\n%s\n" "The art filepath is: $art" # debug
+  state="$(getState)"
   rating="$(getRatingStars)"
   trackDisc="$(getTrackDisc)"
 
