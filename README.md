@@ -6,11 +6,13 @@ Current features:
 * Absolute *and relative* ranking changes to current track
 
 ## Screenshots
-On Fedora 22 (GNOME 3.16) the notifications provided by banshee-wrapper appear as shown:
+On GNOME 3.16 (Dark Theme) the notifications provided by banshee-wrapper should look something like:
 
-![screenshot of notification](http://i.imgur.com/xSDj2uB.png) &nbsp;&nbsp; ![screenshot of notification on hover](http://i.imgur.com/PrxOukO.png)
+![screenshot of notification](http://i.imgur.com/xSDj2uB.png)
+Figure 1: Display default
 
-Left: Standard. Right: On mouse hover
+![screenshot of notification on hover](http://i.imgur.com/PrxOukO.png)
+Figure 2: Display during mouse hover
 
 ## Requirements
 The script requires the following packages and libraries (most of which come stock):
