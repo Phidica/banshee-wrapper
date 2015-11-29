@@ -133,7 +133,6 @@ notify()
   trackDisc="$(getTrackDisc)"
 
   title="$(trimQuery title)"
-  printf "%s" "$title"
 
   artist="$(trimQuery artist)"
   album="$(trimQuery album)"
