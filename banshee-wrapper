@@ -7,8 +7,8 @@ trimQuery() # query
 {
   query="$1"
 
-  # Get complete fields output, keep the first matching field
-  str="$(banshee --query-all | grep -m 1 $query)"
+  # Get complete fields output, keep the only field that matches exactly
+  str="$(banshee --query-all | grep ^$query:)"
   # Trim away the key and keep the data
   result=${str#$query: }
 
@@ -133,6 +133,7 @@ notify()
   trackDisc="$(getTrackDisc)"
 
   title="$(trimQuery title)"
+  printf "%s" "$title"
 
   artist="$(trimQuery artist)"
   album="$(trimQuery album)"
